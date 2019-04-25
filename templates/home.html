@@ -1,0 +1,79 @@
+<html>
+  <head>
+    <!-- Load TensorFlow.js -->
+    <script src="https://unpkg.com/@tensorflow/tfjs"></script>
+    <!-- Load Posenet -->
+    <script src="https://unpkg.com/@tensorflow-models/posenet"></script>
+ </head>
+
+  <body>
+    <img id='cat' src="{{ url_for('static', filename = 'File1.jpg') }}" height="500" width="500" alt="not_found"/>
+    <script>
+<!--    function updateImage() {-->
+<!--        image=document.getElementById('cat');-->
+<!--        dot_index = image.src.lastIndexOf(".");-->
+<!--        File_index = image.src.lastIndexOf("File");-->
+<!--        console.log(File_index)-->
+<!--        console.log(dot_index)-->
+<!--        count = image.src.slice(File_index+4,dot_index)-->
+<!--        count=parseInt(count)-->
+<!--        count=count+1-->
+<!--        console.log(count)-->
+<!--        console.log(image.src)-->
+<!--        image.src = image.src.split("File")[0]+"File"+count.toString()+ ".jpg";-->
+<!--        console.log(image.src)-->
+<!--    }-->
+
+
+    window.onload = function() {
+
+
+    function Coordinates(){
+    var imageScaleFactor = 0.5;
+    var outputStride = 16;
+    var flipHorizontal = false;
+
+    var imageElement = document.getElementById('cat');
+
+    posenet.load().then(function(net){
+      return net.estimateSinglePose(imageElement, imageScaleFactor, flipHorizontal, outputStride)
+    }).then(function(pose){
+      var xhr = new XMLHttpRequest();
+      var url = "http://127.0.0.1:5000/human_pose";
+      xhr.open("POST", url, true);
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+              console.log("done");
+          }
+      };
+      var data = JSON.stringify(pose);
+      console.log(data)
+      xhr.send(data)
+      console.log(pose);
+      console.log(imageElement.src);
+    })
+    }
+
+    function updateImage() {
+        var image = document.getElementById("cat");
+        if(image.complete && image.naturalHeight !== 0){
+        Coordinates() }
+        dot_index = image.src.lastIndexOf(".")
+        File_index = image.src.lastIndexOf("File")
+        console.log(File_index)
+        console.log(dot_index)
+        count = image.src.slice(File_index+4,dot_index)
+        count=parseInt(count)
+        count=count+1
+        console.log(count)
+        console.log("========================")
+        console.log(image.src)
+        image.src = image.src.split("File")[0]+"File"+count.toString()+ ".jpg";
+    }
+    setInterval(updateImage, 8000);
+    }
+
+    </script>
+  </body>
+</html>
