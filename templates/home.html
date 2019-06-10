@@ -1,79 +1,151 @@
-<html>
-  <head>
-    <!-- Load TensorFlow.js -->
-    <script src="https://unpkg.com/@tensorflow/tfjs"></script>
-    <!-- Load Posenet -->
-    <script src="https://unpkg.com/@tensorflow-models/posenet"></script>
- </head>
+    <html>
+    <head>
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/posenet"></script>
 
-  <body>
-    <img id='cat' src="{{ url_for('static', filename = 'File1.jpg') }}" height="500" width="500" alt="not_found"/>
+
+<!--         <script src="https://unpkg.com/@tensorflow/tfjs"></script>-->
+<!--    &lt;!&ndash; Load Posenet &ndash;&gt;-->
+<!--        <script src="https://unpkg.com/@tensorflow-models/posenet"></script>-->
+
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+        <script>window.jQuery || document.write('<script src="{{
+      url_for('static', filename='jquery.js') }}">\x3C/script>')
+
+        </script>
+        <script type="text/javascript">
+      var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+
+        </script>
+
+
+        <style>
+body  {
+  background-image: url("back.jpg");
+  background-color: #cccccc;
+}
+</style>
+    </head>
+
+    <body>
+    <img id='cat' src="{{ url_for('static', filename = 'File1.jpg') }}" height="300" width="400"  align="right" alt="not_found"/>
+    <br/>
+    <br/>
+     <button type="button" onclick="updateImage()" style="position: absolute; right: 150;bottom:300;" >Next</button>
+     <div id="newcode" align="left">
+
+     </div>
+    <!--    {% if ideal %}-->
+    <!--    <p align="right">Ideal Angles<br> {{ideal.toString}}</p>-->
+    <!--    {% endif %}-->
+
+    <!--    {% if real %}-->
+    <!--    <p align="right">Real Angles<br> {{real.toString}}</p>-->
+    <!--    {% endif %}-->
+
     <script>
-<!--    function updateImage() {-->
-<!--        image=document.getElementById('cat');-->
-<!--        dot_index = image.src.lastIndexOf(".");-->
-<!--        File_index = image.src.lastIndexOf("File");-->
-<!--        console.log(File_index)-->
-<!--        console.log(dot_index)-->
-<!--        count = image.src.slice(File_index+4,dot_index)-->
-<!--        count=parseInt(count)-->
-<!--        count=count+1-->
-<!--        console.log(count)-->
-<!--        console.log(image.src)-->
-<!--        image.src = image.src.split("File")[0]+"File"+count.toString()+ ".jpg";-->
-<!--        console.log(image.src)-->
-<!--    }-->
+        function mainpose(){
+        console.log("start");
+        var imageScaleFactor = 0.5;
+        var outputStride = 16;
+        var flipHorizontal = false;
+
+        var imageElement = document.getElementById('cat');
+
+        posenet.load().then(function(net){
+          var poses = net.estimatePoses(imageElement, {
+        flipHorizontal: flipHorizontal,
+        decodingMethod: 'single-person'
+      });
+      var pose = poses[0];
+      return poses;
+        }).then(function(pose){
+        console.log(pose[0]);
+        pose=pose[0];
+                  $.ajax({
+                url: $SCRIPT_ROOT+'/human_pose/',
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(pose)
+
+            }).done(function(data) {
+            $("#newcode").empty();
+            $("#newcode").append(data);
+                console.log("success");
+            });
+        })
+        }
+        mainpose()
+    </script>
+    <script>
 
 
-    window.onload = function() {
+        function updateImage() {
+            image=document.getElementById('cat');
+            dot_index = image.src.lastIndexOf(".");
+            File_index = image.src.lastIndexOf("File");
+            count = image.src.slice(File_index+4,dot_index)
+            count=parseInt(count)
+            count=count+1
+            image.src = image.src.split("File")[0]+"File"+count.toString()+ ".jpg";
+            mainpose()
+            console.log(image.src)
+        }
 
 
-    function Coordinates(){
-    var imageScaleFactor = 0.5;
-    var outputStride = 16;
-    var flipHorizontal = false;
+    <!--    window.onload = function() {-->
 
-    var imageElement = document.getElementById('cat');
 
-    posenet.load().then(function(net){
-      return net.estimateSinglePose(imageElement, imageScaleFactor, flipHorizontal, outputStride)
-    }).then(function(pose){
-      var xhr = new XMLHttpRequest();
-      var url = "http://127.0.0.1:5000/human_pose";
-      xhr.open("POST", url, true);
-      xhr.setRequestHeader("Content-Type", "application/json");
-      xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4 && xhr.status === 200) {
-              console.log("done");
-          }
-      };
-      var data = JSON.stringify(pose);
-      console.log(data)
-      xhr.send(data)
-      console.log(pose);
-      console.log(imageElement.src);
-    })
-    }
+    <!--    function Coordinates(){-->
+    <!--    var imageScaleFactor = 0.5;-->
+    <!--    var outputStride = 16;-->
+    <!--    var flipHorizontal = false;-->
 
-    function updateImage() {
-        var image = document.getElementById("cat");
-        if(image.complete && image.naturalHeight !== 0){
-        Coordinates() }
-        dot_index = image.src.lastIndexOf(".")
-        File_index = image.src.lastIndexOf("File")
-        console.log(File_index)
-        console.log(dot_index)
-        count = image.src.slice(File_index+4,dot_index)
-        count=parseInt(count)
-        count=count+1
-        console.log(count)
-        console.log("========================")
-        console.log(image.src)
-        image.src = image.src.split("File")[0]+"File"+count.toString()+ ".jpg";
-    }
-    setInterval(updateImage, 8000);
-    }
+    <!--    var imageElement = document.getElementById('cat');-->
+
+    <!--    posenet.load().then(function(net){-->
+    <!--      return net.estimateSinglePose(imageElement, imageScaleFactor, flipHorizontal, outputStride)-->
+    <!--    }).then(function(pose){-->
+    <!--      var xhr = new XMLHttpRequest();-->
+    <!--      var url = "http://127.0.0.1:5000/human_pose";-->
+    <!--      xhr.open("POST", url, true);-->
+    <!--      xhr.setRequestHeader("Content-Type", "application/json");-->
+    <!--      xhr.onreadystatechange = function () {-->
+    <!--          if (xhr.readyState === 4 && xhr.status === 200) {-->
+    <!--              console.log("done");-->
+    <!--          }-->
+    <!--      };-->
+    <!--      var data = JSON.stringify(pose);-->
+    <!--      console.log(data)-->
+    <!--      xhr.send(data)-->
+    <!--      console.log(pose);-->
+    <!--      console.log(imageElement.src);-->
+    <!--    })-->
+    <!--    -->
+    <!--    }-->
+
+    <!--    function updateImage() {-->
+    <!--        var image = document.getElementById("cat");-->
+    <!--        if(image.complete && image.naturalHeight !== 0){-->
+    <!--        Coordinates() }-->
+    <!--        dot_index = image.src.lastIndexOf(".")-->
+    <!--        File_index = image.src.lastIndexOf("File")-->
+    <!--        console.log(File_index)-->
+    <!--        console.log(dot_index)-->
+    <!--        count = image.src.slice(File_index+4,dot_index)-->
+    <!--        count=parseInt(count)-->
+    <!--        count=count+1-->
+    <!--        console.log(count)-->
+    <!--        console.log("========================")-->
+    <!--        console.log(image.src)-->
+    <!--        image.src = image.src.split("File")[0]+"File"+count.toString()+ ".jpg";-->
+    <!--    }-->
+    <!--&lt;!&ndash;    setInterval(updateImage, 8000);&ndash;&gt;-->
+    <!--        Coordinates()-->
+    <!--    }-->
+
+
 
     </script>
-  </body>
-</html>
+    </body>
+    </html>

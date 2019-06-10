@@ -1,40 +1,79 @@
-from flask import Flask, render_template, request, jsonify, json
+#!/usr/bin/python
+import threading
+
+from flask import Flask, render_template, request, redirect, jsonify, json, url_for, g
 import sys
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import svm
+from ROI import ROI
 from sklearn.metrics import classification_report, confusion_matrix
 import json
 
 app = Flask(__name__)
 
+data_g = None
+
 
 @app.route('/')
 def hello_world():
-    return render_template("home.html")
+    return render_template("home.html", ideal=None, real=None)
 
 
-# @app.route('/pose')
-# def pose(data):
-#     l = len(data)
-#     appearance = {}
-#     temp = []
-#     for i in range(l):
-#         appearance[data[i]] = appearance[data[i]] + 1
-
-
-@app.route('/human_pose', methods=['POST', 'GET'])
-def human_pose():
-    result = request.get_json(force=True)
-    pose1 = predict(result)
+@app.route('/poseROI/<pose1>/')
+def poseROI(pose1):
+    data = data_g
     print(pose1)
-    return render_template('pose.html')
+    temp = ROI()
+    if pose1 == 'SeatedForwardBend':
+        angles = temp.bend(data)
+    elif pose1 == 'Bridge':
+        angles = temp.bridge(data)
+    elif pose1 == 'Child':
+        angles = temp.child(data)
+    elif pose1 == 'DownwardDog':
+        angles = temp.downwarddog(data)
+    elif pose1 == 'Mountain':
+        angles = temp.mountain(data)
+    elif pose1 == 'Plank':
+        angles = temp.plank(data)
+    elif pose1 == 'Tree':
+        angles = temp.tree(data)
+    elif pose1 == 'TrianglePose':
+        angles = temp.trianglepose(data)
+    else:
+        angles = temp.warrior1(data)
+
+    ideal = angles[0]
+    real = angles[1]
+    print(ideal)
+    print(real)
+    return render_template('pose.html', pose=pose1, ideal=ideal, real=real, len=len(ideal))
 
 
-def js_r(data1):
-    with open(data1, encoding='utf-8') as f_in:
-        return json.load(f_in)
+@app.route('/human_pose/', methods=['POST', 'GET'])
+def human_pose():
+    global data_g
+    result = request.get_json(force=True)
+    # dt(result)
+    data1 = json_to_df(result)
+    data_g = data1
+    pose2 = predict(data1)
+    print(pose2)
+    return redirect(url_for('poseROI', pose1=pose2[0]))
+
+
+@app.after_request
+def add_headers(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    return response
+
+
+# def js_r(data1):
+#     with open(data1, encoding='utf-8') as f_in:
+#         return json.load(f_in)
 
 
 def json_to_df(data):
@@ -55,14 +94,13 @@ def json_to_df(data):
     return dff
 
 
-def format2(data):
-    data = data.drop(data.columns[0], axis=1)
-    print(data.shape)
-    return data
+# def format2(data):
+#     data = data.drop(data.columns[0], axis=1)
+#     print(data.shape)
+#     return data
 
 
-def predict(data):
-    data_1 = json_to_df(data)
+def predict(data_1):
     print(data_1.shape)
     data1 = pd.read_csv('Mountain.csv')
     data2 = pd.read_csv('Bend.csv')
@@ -84,21 +122,23 @@ def predict(data):
     scaler.fit(X_train)
     X_train = scaler.transform(X_train)
     X_test = scaler.transform(X_test)
-    classifier1 = KNeighborsClassifier(n_neighbors=3)
-    classifier1.fit(X_train, y_train)
+    # classifier1 = KNeighborsClassifier(n_neighbors=3)
+    # classifier1.fit(X_train, y_train)
 
     classifier2 = svm.SVC()
     classifier2.fit(X_train, y_train)
 
-    y_pred1 = classifier1.predict(X_test)
-    y_pred2 = classifier1.predict(X_test)
-    y_pred = [y_pred1, y_pred2]
-    return y_pred
+    # y_pred1 = classifier1.predict(X_test)
+    y_pred2 = classifier2.predict(X_test)
+    return y_pred2
 
 
 def dt(data):
+    if (data['score'] < 0.2):
+        print("Not Included")
+        return
     dff = json_to_df(data)
-    f = open('Warrior1_t.csv', 'a')
+    f = open('Warrior1.csv', 'a')
     dff.to_csv(f, header=False)
     f.close()
 
